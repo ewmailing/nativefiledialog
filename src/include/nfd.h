@@ -50,6 +50,7 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdbool.h>
 
 /* denotes UTF-8 char */
 typedef char nfdchar_t;
@@ -96,6 +97,7 @@ NFD_EXPORT nfdchar_t * NFD_CALL NFD_PathSet_GetPath( const nfdpathset_t *pathSet
 /* Free the pathSet */    
 NFD_EXPORT void NFD_CALL NFD_PathSet_Free( nfdpathset_t *pathSet );
 
+NFD_EXPORT bool NFD_CALL NFD_IsAvailable( void );
 
 #ifdef __cplusplus
 }

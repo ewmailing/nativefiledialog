@@ -233,3 +233,9 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
 
     return nfdResult;
 }
+
+bool NFD_IsAvailable()
+{
+	return true;
+}
+
