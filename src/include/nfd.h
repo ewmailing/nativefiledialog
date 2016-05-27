@@ -10,6 +10,41 @@
 #ifndef _NFD_H
 #define _NFD_H
 
+#ifndef DOXYGEN_SHOULD_IGNORE_THIS
+        /** @cond DOXYGEN_SHOULD_IGNORE_THIS */
+        
+        /* Note: For Doxygen to produce clean output, you should set the 
+         * PREDEFINED option to remove DECLSPEC, CALLCONVENTION, and
+         * the DOXYGEN_SHOULD_IGNORE_THIS blocks.
+         * PREDEFINED = DOXYGEN_SHOULD_IGNORE_THIS=1 DECLSPEC= CALLCONVENTION=
+         */
+        
+        /** Windows needs to know explicitly which functions to export in a DLL. */
+	
+#ifdef BUILD_NFD_AS_DLL
+        #ifdef WIN32
+                #define NFD_EXPORT __declspec(dllexport)
+        #elif defined(__GNUC__) && __GNUC__ >= 4
+                #define NFD_EXPORT __attribute__ ((visibility("default")))
+        #else
+                #define NFD_EXPORT
+        #endif
+#else
+        #define NFD_EXPORT
+#endif /* BUILD_NFD_AS_DLL */
+
+/* For Windows, by default, use the C calling convention */
+#if defined(_WIN32)
+	#define NFD_CALL __cdecl
+#else
+	#define NFD_CALL
+#endif
+
+
+/** @endcond DOXYGEN_SHOULD_IGNORE_THIS */
+#endif /* DOXYGEN_SHOULD_IGNORE_THIS */
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,30 +71,30 @@ typedef enum {
 /* nfd_<targetplatform>.c */
 
 /* single file open dialog */    
-nfdresult_t NFD_OpenDialog( const nfdchar_t *filterList,
+NFD_EXPORT nfdresult_t NFD_CALL NFD_OpenDialog( const nfdchar_t *filterList,
                             const nfdchar_t *defaultPath,
                             nfdchar_t **outPath );
 
 /* multiple file open dialog */    
-nfdresult_t NFD_OpenDialogMultiple( const nfdchar_t *filterList,
+NFD_EXPORT nfdresult_t NFD_CALL NFD_OpenDialogMultiple( const nfdchar_t *filterList,
                                     const nfdchar_t *defaultPath,
                                     nfdpathset_t *outPaths );
 
 /* save dialog */
-nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
+NFD_EXPORT nfdresult_t NFD_CALL NFD_SaveDialog( const nfdchar_t *filterList,
                             const nfdchar_t *defaultPath,
                             nfdchar_t **outPath );
 
 /* nfd_common.c */
 
 /* get last error -- set when nfdresult_t returns NFD_ERROR */
-const char *NFD_GetError( void );
+NFD_EXPORT const char * NFD_CALL NFD_GetError( void );
 /* get the number of entries stored in pathSet */
-size_t      NFD_PathSet_GetCount( const nfdpathset_t *pathSet );
+NFD_EXPORT size_t NFD_CALL NFD_PathSet_GetCount( const nfdpathset_t *pathSet );
 /* Get the UTF-8 path at offset index */
-nfdchar_t  *NFD_PathSet_GetPath( const nfdpathset_t *pathSet, size_t index );
+NFD_EXPORT nfdchar_t * NFD_CALL NFD_PathSet_GetPath( const nfdpathset_t *pathSet, size_t index );
 /* Free the pathSet */    
-void        NFD_PathSet_Free( nfdpathset_t *pathSet );
+NFD_EXPORT void NFD_CALL NFD_PathSet_Free( nfdpathset_t *pathSet );
 
 
 #ifdef __cplusplus
