@@ -110,12 +110,7 @@ SET(SOURCE_FILES
 	${CMAKE_SOURCE_DIR}/src/nfd_common.h
 )
 
-# Experimental and not finished. Need to make an option.
-# Also need to do NDEBUG for release because standalone uses assert.h
-# ADD_DEFINITIONS(-DNFD_COMPILE_AS_STANDALONE)
-
 SET(ADDITIONAL_LIBRARIES "")
-
 
 IF(APPLE)
 	IF(IOS)
@@ -141,6 +136,9 @@ ELSEIF(WIN32)
 		LIST(APPEND ADDITIONAL_LIBRARIES 
 			${WINDOWS_COMCTL_LIBRARY}
 		)
+		IF(MSVC)
+			ADD_DEFINITIONS(/D _CRT_SECURE_NO_WARNINGS)
+		ENDIF()
 
 ELSEIF(ANDROID)
 	LIST(APPEND SOURCE_FILES
