@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <string.h>
 
-#if NFD_USE_DLOPEN
+#ifdef NFD_USE_DLOPEN
 #include "nfd_gtk_dlopen.h"
 #else
 #include <gtk/gtk.h>
@@ -17,22 +17,52 @@
 #include "nfd.h"
 #include "nfd_common.h"
 
-#if NFD_USE_DLOPEN
+#ifdef NFD_USE_DLOPEN
+static void* s_glibLibrary = NULL;
 static void* s_gtkLibrary = NULL;
-const char LOADLIB_FAIL_MSG[] = "Unable to dlopen GTK+";
+
+const char LOADLIB_GLIB_FAIL_MSG[] = "Unable to dlopen Glib";
+const char LOADLIB_GTK_FAIL_MSG[] = "Unable to dlopen GTK+";
 
 static bool Internal_LoadLibrary()
 {
 	// RTLD_LAZY or RTLD_NOW?
-	s_gtkLibrary = dlopen("libgtk-3.so.0", RTLD_NOW|RTLD_LOCAL);
-	if(NULL != s_gtkLibrary)
+	//const mode_flags = RTLD_NOW | RTLD_LOCAL;	
+	const mode_flags = RTLD_LAZY | RTLD_LOCAL;	
+	
+	s_glibLibrary = dlopen("libglib-2.0.so", mode_flags);
+	if(NULL == s_glibLibrary)
 	{
+        NFDi_SetError(LOADLIB_GLIB_FAIL_MSG);
+		return false;
+
+	}
+
+
+	s_gtkLibrary = dlopen("libgtk-3.so.0", mode_flags);
+	if((NULL != s_gtkLibrary) && (NULL != s_glibLibrary))
+	{
+		NDFi_SetDLSymbols(s_glibLibrary, s_gtkLibrary);
 		return true;
 	}
 	else
 	{
-        NFDi_SetError(LOADLIB_FAIL_MSG);
+        NFDi_SetError(LOADLIB_GTK_FAIL_MSG);
 		return false;
+	}
+}
+
+static void Internal_UnloadLibrary()
+{
+	if(NULL != s_gtkLibrary)
+	{
+		dlclose(s_gtkLibrary);
+		s_gtkLibrary = NULL;
+	}
+	if(NULL != s_glibLibrary)
+	{
+		dlclose(s_glibLibrary);
+		s_glibLibrary = NULL;
 	}
 }
 
@@ -47,10 +77,19 @@ static bool CheckLib()
 		return true;
 	}
 }
+
+static void CloseLib()
+{
+	Internal_UnloadLibrary();
+}
 #else
 static bool CheckLib()
 {
 	return true;
+}
+
+static void CloseLib()
+{
 }
 
 

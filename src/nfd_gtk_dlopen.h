@@ -32,6 +32,9 @@ typedef float	gfloat;
 typedef double	gdouble;
 
 
+typedef void* gpointer;
+typedef const void *gconstpointer;
+
 /* From a glibconfig.h */
 #if defined(_WIN64) || defined(_M_X64) || defined(_M_AMD64)
 
@@ -126,6 +129,9 @@ struct _GTypeQuery
 #define G_TYPE_INSTANCE_GET_PRIVATE(instance, g_type, c_type)   ((c_type*) g_type_instance_get_private ((GTypeInstance*) (instance), (g_type)))
 
 
+/* NOTE: I needed to disable the cast checks, otherwise the program always crashed. */
+#define G_DISABLE_CAST_CHECKS
+
 /* --- implementation bits --- */
 #ifndef G_DISABLE_CAST_CHECKS
 #  define _G_TYPE_CIC(ip, gt, ct) \
@@ -170,6 +176,49 @@ struct _GTypeQuery
 #  define _G_TYPE_CCT(cp, gt)             (g_type_check_class_is_a ((GTypeClass*) cp, gt))
 #  define _G_TYPE_CVH(vl, gt)             (g_type_check_value_holds ((GValue*) vl, gt))
 #endif /* !__GNUC__ */
+
+
+/* glib gtypes.h */
+typedef char   gchar;
+typedef short  gshort;
+typedef long   glong;
+typedef int    gint;
+typedef gint   gboolean;
+
+typedef unsigned char   guchar;
+typedef unsigned short  gushort;
+typedef unsigned long   gulong;
+typedef unsigned int    guint;
+
+typedef float   gfloat;
+typedef double  gdouble;
+
+
+typedef void* gpointer;
+typedef const void *gconstpointer;
+
+/* glib gobject/gtype.h */
+typedef GTypeInstance* (*g_type_check_instance_cast_PROC)(GTypeInstance *instance, GType iface_type);
+static g_type_check_instance_cast_PROC g_type_check_instance_cast;
+
+
+/* glib gmem.h */
+typedef void (*g_free_PROC)(gpointer mem);
+static g_free_PROC g_free;
+
+/* glib gslist.h */
+typedef struct _GSList GSList;
+struct _GSList
+{
+  gpointer data;
+  GSList *next;
+};
+
+typedef void (*g_slist_free_PROC)(GSList* list);
+static g_slist_free_PROC g_slist_free;
+
+typedef guint (*g_slist_length_PROC)(GSList* list);
+static g_slist_length_PROC g_slist_length;
 
 
 
@@ -306,6 +355,8 @@ static gtk_file_chooser_set_current_folder_PROC gtk_file_chooser_set_current_fol
 typedef gchar* (*gtk_file_chooser_get_filename_PROC)(GtkFileChooser *chooser);
 static gtk_file_chooser_get_filename_PROC gtk_file_chooser_get_filename;
 
+typedef GSList* (*gtk_file_chooser_get_filenames_PROC)(GtkFileChooser *chooser);
+static gtk_file_chooser_get_filenames_PROC gtk_file_chooser_get_filenames;
 
 typedef void (*gtk_file_chooser_set_select_multiple_PROC)(GtkFileChooser *chooser, gboolean select_multiple);
 static gtk_file_chooser_set_select_multiple_PROC gtk_file_chooser_set_select_multiple;
@@ -314,6 +365,8 @@ static gtk_file_chooser_set_select_multiple_PROC gtk_file_chooser_set_select_mul
 typedef void (*gtk_file_chooser_set_do_overwrite_confirmation_PROC)(GtkFileChooser *chooser, gboolean do_overwrite_confirmation);
 static gtk_file_chooser_set_do_overwrite_confirmation_PROC gtk_file_chooser_set_do_overwrite_confirmation;
 
+
+typedef struct GtkWindow GtkWindow;
 
 /* From gtkfilechooserdialog.h */
 typedef GtkWidget* (*gtk_file_chooser_dialog_new_PROC)
@@ -337,33 +390,45 @@ static gtk_main_iteration_PROC gtk_main_iteration;
 typedef gboolean (*gtk_init_check_PROC)(int *argc, char ***argv);
 static gtk_init_check_PROC gtk_init_check;
 
-
+/* extra stuff */
+#define TRUE 1
+#define FALSE 0
 
 #include <dlfcn.h>
 
-static void NDFi_SetDLSymbols(void loaded_lib)
+static void NDFi_SetDLSymbols(void* glib_library, void* gtk_library)
 {
-	if(NULL != loaded_lib)
+	if(NULL != glib_library)
 	{
-		gtk_widget_destroy = (gtk_widget_destroy_PROC)dlsym(loaded_lib, "gtk_widget_destroy");
-		gtk_dialog_get_type = (gtk_dialog_get_type_PROC)dlsym(loaded_lib, "gtk_dialog_get_type");
-		gtk_dialog_run = (gtk_dialog_run_PROC)dlsym(loaded_lib, "gtk_dialog_run");
+		g_free = (g_free_PROC)dlsym(glib_library, "g_free");
 
-		gtk_file_filter_new = (gtk_file_filter_new_PROC)dlsym(loaded_lib, "gtk_file_filter_new");
-		gtk_file_filter_set_name = (gtk_file_filter_set_name_PROC)dlsym(loaded_lib, "gtk_file_filter_set_name");
-		gtk_file_filter_add_pattern = (gtk_file_filter_add_pattern_PROC)dlsym(loaded_lib, "gtk_file_filter_add_pattern");
-		gtk_file_chooser_get_type = (gtk_file_chooser_get_type_PROC)dlsym(loaded_lib, "gtk_file_chooser_get_type");
-		gtk_file_chooser_add_filter = (gtk_file_chooser_add_filter_PROC)dlsym(loaded_lib, "gtk_file_chooser_add_filter");
-		gtk_file_chooser_set_current_folder = (gtk_file_chooser_set_current_folder_PROC)dlsym(loaded_lib, "gtk_file_chooser_set_current_folder");
-		gtk_file_chooser_get_filename = (gtk_file_chooser_get_filename_PROC)dlsym(loaded_lib, "gtk_file_chooser_get_filename");
-		gtk_file_chooser_set_select_multiple = (gtk_file_chooser_set_select_multiple_PROC)dlsym(loaded_lib, "gtk_file_chooser_set_select_multiple");
-		gtk_file_chooser_set_do_overwrite_confirmation = (gtk_file_chooser_set_do_overwrite_confirmation_PROC)dlsym(loaded_lib, "gtk_file_chooser_set_do_overwrite_confirmation");
+		g_slist_free = (g_slist_free_PROC)dlsym(glib_library, "g_slist_free");
+		g_slist_length = (g_slist_length_PROC)dlsym(glib_library, "g_slist_length");
 
-		gtk_file_chooser_dialog_new = (gtk_file_chooser_dialog_new_PROC)dlsym(loaded_lib, "gtk_file_chooser_dialog_new");
+		g_type_check_instance_cast = (g_type_check_instance_cast_PROC)dlsym(glib_library, "g_type_check_instance_cast");
+	}
+	if(NULL != gtk_library)
+	{
+		gtk_widget_destroy = (gtk_widget_destroy_PROC)dlsym(gtk_library, "gtk_widget_destroy");
+		gtk_dialog_get_type = (gtk_dialog_get_type_PROC)dlsym(gtk_library, "gtk_dialog_get_type");
+		gtk_dialog_run = (gtk_dialog_run_PROC)dlsym(gtk_library, "gtk_dialog_run");
 
-		gtk_events_pending = (gtk_events_pending_PROC)dlsym(loaded_lib, "gtk_events_pending");
-		gtk_main_iteration = (gtk_main_iteration_PROC)dlsym(loaded_lib, "gtk_main_iteration");
-		gtk_init_check = (gtk_init_check_PROC)dlsym(loaded_lib, "gtk_init_check");
+		gtk_file_filter_new = (gtk_file_filter_new_PROC)dlsym(gtk_library, "gtk_file_filter_new");
+		gtk_file_filter_set_name = (gtk_file_filter_set_name_PROC)dlsym(gtk_library, "gtk_file_filter_set_name");
+		gtk_file_filter_add_pattern = (gtk_file_filter_add_pattern_PROC)dlsym(gtk_library, "gtk_file_filter_add_pattern");
+		gtk_file_chooser_get_type = (gtk_file_chooser_get_type_PROC)dlsym(gtk_library, "gtk_file_chooser_get_type");
+		gtk_file_chooser_add_filter = (gtk_file_chooser_add_filter_PROC)dlsym(gtk_library, "gtk_file_chooser_add_filter");
+		gtk_file_chooser_set_current_folder = (gtk_file_chooser_set_current_folder_PROC)dlsym(gtk_library, "gtk_file_chooser_set_current_folder");
+		gtk_file_chooser_get_filename = (gtk_file_chooser_get_filename_PROC)dlsym(gtk_library, "gtk_file_chooser_get_filename");
+		gtk_file_chooser_get_filenames = (gtk_file_chooser_get_filenames_PROC)dlsym(gtk_library, "gtk_file_chooser_get_filenames");
+		gtk_file_chooser_set_select_multiple = (gtk_file_chooser_set_select_multiple_PROC)dlsym(gtk_library, "gtk_file_chooser_set_select_multiple");
+		gtk_file_chooser_set_do_overwrite_confirmation = (gtk_file_chooser_set_do_overwrite_confirmation_PROC)dlsym(gtk_library, "gtk_file_chooser_set_do_overwrite_confirmation");
+
+		gtk_file_chooser_dialog_new = (gtk_file_chooser_dialog_new_PROC)dlsym(gtk_library, "gtk_file_chooser_dialog_new");
+
+		gtk_events_pending = (gtk_events_pending_PROC)dlsym(gtk_library, "gtk_events_pending");
+		gtk_main_iteration = (gtk_main_iteration_PROC)dlsym(gtk_library, "gtk_main_iteration");
+		gtk_init_check = (gtk_init_check_PROC)dlsym(gtk_library, "gtk_init_check");
 	}
 }
 

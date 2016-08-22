@@ -15,13 +15,18 @@ IF(APPLE)
 		OPTION(WANTS_BUILD_SHARED_LIBRARY "Build dynamic library" ON)
 		CMAKE_DEPENDENT_OPTION(WANTS_BUILD_FRAMEWORK "Set to ON to build framework instead of dylib. Only valid if BUILD_SHARED_LIBRARY is ON an is OS X." ON "WANTS_BUILD_SHARED_LIBRARY" ON)
 	ENDIF()
+ELSEIF(UNIX)
+	OPTION(NFD_USE_DLOPEN "Use dlopen for GTK" ON)
+
 ELSE()
 	OPTION(WANTS_BUILD_SHARED_LIBRARY "Build dynamic library" ON)
 ENDIF()
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules/" ${CMAKE_MODULE_PATH})
 
-
+IF(NFD_USE_DLOPEN)
+	ADD_DEFINITIONS(-DNFD_USE_DLOPEN)
+ENDIF()
 
 IF(WANTS_BUILD_SHARED_LIBRARY)
 # RPATH stuff. This MUST be set before any targets that use it are declared.
@@ -150,19 +155,25 @@ ELSEIF(UNIX)
 		${CMAKE_SOURCE_DIR}/src/nfd_gtk.c
 	)
 
-	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-	# Setup CMake to use GTK+, tell the compiler where to look for headers
-	# and to the linker where to look for libraries
-	include_directories(${GTK3_INCLUDE_DIRS})
-	link_directories(${GTK3_LIBRARY_DIRS})
-	# Add other flags to the compiler
-	#add_definitions(${GTK3_CFLAGS_OTHER})
-	LIST(APPEND NFD_C_FLAGS ${GTK3_CFLAGS_OTHER})
+	IF(NFD_USE_DLOPEN)
+		LIST(APPEND ADDITIONAL_LIBRARIES
+			${CMAKE_DL_LIBS}
+		)
+	ELSE()
+		find_package(PkgConfig REQUIRED)
+		pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+		# Setup CMake to use GTK+, tell the compiler where to look for headers
+		# and to the linker where to look for libraries
+		include_directories(${GTK3_INCLUDE_DIRS})
+		link_directories(${GTK3_LIBRARY_DIRS})
+		# Add other flags to the compiler
+		#add_definitions(${GTK3_CFLAGS_OTHER})
+		LIST(APPEND NFD_C_FLAGS ${GTK3_CFLAGS_OTHER})
 
-	LIST(APPEND ADDITIONAL_LIBRARIES 
-		${GTK3_LIBRARIES}
-	)
+		LIST(APPEND ADDITIONAL_LIBRARIES 
+			${GTK3_LIBRARIES}
+		)
+	ENDIF()
 
 
 ELSE()
