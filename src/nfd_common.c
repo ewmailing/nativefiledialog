@@ -39,6 +39,17 @@ void NFD_PathSet_Free( nfdpathset_t *pathset )
     NFDi_Free( pathset->buf );
 }
 
+/*
+Free the outPaths returned by the Dialog functions.
+When dealing with DLL boundaries, different compiler versions for different
+libraries, and environments where custom allocators are used, 
+people should call this and not assume the standard library free() is the right one.
+*/
+void NFD_Path_Free(nfdchar_t* path)
+{
+	NFDi_Free(path);
+}
+
 /* internal routines */
 
 void *NFDi_Malloc( size_t bytes )

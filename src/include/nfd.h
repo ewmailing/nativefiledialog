@@ -97,6 +97,9 @@ NFD_EXPORT nfdchar_t * NFD_CALL NFD_PathSet_GetPath( const nfdpathset_t *pathSet
 /* Free the pathSet */    
 NFD_EXPORT void NFD_CALL NFD_PathSet_Free( nfdpathset_t *pathSet );
 
+/* Free the outPaths returned by the Dialog functions */
+NFD_EXPORT void NFD_Path_Free(nfdchar_t* path);
+
 NFD_EXPORT bool NFD_CALL NFD_IsAvailable( void );
 
 #ifdef __cplusplus
