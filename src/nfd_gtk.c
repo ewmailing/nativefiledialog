@@ -7,10 +7,54 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+
+#if NFD_USE_DLOPEN
+#include "nfd_gtk_dlopen.h"
+#else
 #include <gtk/gtk.h>
+#endif
+
 #include "nfd.h"
 #include "nfd_common.h"
 
+#if NFD_USE_DLOPEN
+static void* s_gtkLibrary = NULL;
+const char LOADLIB_FAIL_MSG[] = "Unable to dlopen GTK+";
+
+static bool Internal_LoadLibrary()
+{
+	// RTLD_LAZY or RTLD_NOW?
+	s_gtkLibrary = dlopen("libgtk-3.so.0", RTLD_NOW|RTLD_LOCAL);
+	if(NULL != s_gtkLibrary)
+	{
+		return true;
+	}
+	else
+	{
+        NFDi_SetError(LOADLIB_FAIL_MSG);
+		return false;
+	}
+}
+
+static bool CheckLib()
+{
+	if(NULL == s_gtkLibrary)
+	{
+		return Internal_LoadLibrary();
+	}
+	else
+	{
+		return true;
+	}
+}
+#else
+static bool CheckLib()
+{
+	return true;
+}
+
+
+#endif
 
 const char INIT_FAIL_MSG[] = "gtk_init_check failed to initilaize GTK+";
 
@@ -172,6 +216,11 @@ nfdresult_t NFD_OpenDialog( const char *filterList,
     GtkWidget *dialog;
     nfdresult_t result;
 
+	if ( !CheckLib() )
+	{
+        return NFD_ERROR;
+	}
+
     if ( !gtk_init_check( NULL, NULL ) )
     {
         NFDi_SetError(INIT_FAIL_MSG);
@@ -228,6 +277,11 @@ nfdresult_t NFD_OpenDialogMultiple( const nfdchar_t *filterList,
 {
     GtkWidget *dialog;
     nfdresult_t result;
+	
+	if ( !CheckLib() )
+	{
+        return NFD_ERROR;
+	}
 
     if ( !gtk_init_check( NULL, NULL ) )
     {
@@ -275,6 +329,11 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
 {
     GtkWidget *dialog;
     nfdresult_t result;
+
+	if ( !CheckLib() )
+	{
+        return NFD_ERROR;
+	}
 
     if ( !gtk_init_check( NULL, NULL ) )
     {
@@ -327,6 +386,6 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
 
 bool NFD_IsAvailable()
 {
-	return true;
+	return CheckLib();
 }
 
