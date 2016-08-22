@@ -396,6 +396,37 @@ static gtk_init_check_PROC gtk_init_check;
 
 #include <dlfcn.h>
 
+static void NFDi_ClearDLSymbols()
+{
+	g_free = NULL;
+
+	g_slist_free = NULL;
+	g_slist_length = NULL;
+
+	g_type_check_instance_cast = NULL;
+
+	gtk_widget_destroy = NULL;
+	gtk_dialog_get_type = NULL;
+	gtk_dialog_run = NULL;
+
+	gtk_file_filter_new = NULL;
+	gtk_file_filter_set_name = NULL;
+	gtk_file_filter_add_pattern = NULL;
+	gtk_file_chooser_get_type = NULL;
+	gtk_file_chooser_add_filter = NULL;
+	gtk_file_chooser_set_current_folder = NULL;
+	gtk_file_chooser_get_filename = NULL;
+	gtk_file_chooser_get_filenames = NULL;
+	gtk_file_chooser_set_select_multiple = NULL;
+	gtk_file_chooser_set_do_overwrite_confirmation = NULL;
+
+	gtk_file_chooser_dialog_new = NULL;
+
+	gtk_events_pending = NULL;
+	gtk_main_iteration = NULL;
+	gtk_init_check = NULL;
+}
+
 static void NDFi_SetDLSymbols(void* glib_library, void* gtk_library)
 {
 	if(NULL != glib_library)

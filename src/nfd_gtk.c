@@ -47,6 +47,7 @@ static bool Internal_LoadLibrary()
 	}
 	else
 	{
+		NFDi_ClearDLSymbols();
         NFDi_SetError(LOADLIB_GTK_FAIL_MSG);
 		return false;
 	}
@@ -64,6 +65,7 @@ static void Internal_UnloadLibrary()
 		dlclose(s_glibLibrary);
 		s_glibLibrary = NULL;
 	}
+	NFDi_ClearDLSymbols();
 }
 
 static bool CheckLib()
@@ -306,6 +308,7 @@ nfdresult_t NFD_OpenDialog( const char *filterList,
     gtk_widget_destroy(dialog);
     WaitForCleanup();
 
+	CloseLib();
     return result;
 }
 
@@ -359,6 +362,7 @@ nfdresult_t NFD_OpenDialogMultiple( const nfdchar_t *filterList,
     gtk_widget_destroy(dialog);
     WaitForCleanup();
 
+	CloseLib();
     return result;
 }
 
@@ -420,11 +424,13 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
     gtk_widget_destroy(dialog);
     WaitForCleanup();
     
+	CloseLib();
     return result;
 }
 
 bool NFD_IsAvailable()
 {
+	bool ret_flag = false;
 	/*
 		We want to distinguish if we are in a window manager or command line.
 		XDG_CURRENT_DESKTOP seems to be populated in the window manager case.
@@ -435,6 +441,8 @@ bool NFD_IsAvailable()
 		return false;
 	}
 	/* Now we should actually load the libraries to make sure GTK-3 is available. */
-	return CheckLib();
+	ret_flag = CheckLib();
+	CloseLib();
+	return ret_flag;
 }
 
