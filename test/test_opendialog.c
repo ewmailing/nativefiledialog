@@ -8,6 +8,14 @@
 
 int main( void )
 {
+	if(NFD_IsAvailable())
+	{
+        puts("nfd availble!");
+	}
+	else
+	{
+        puts("nfd not availble!");
+	}
     nfdchar_t *outPath = NULL;
     nfdresult_t result = NFD_OpenDialog( "png,jpg;pdf", NULL, &outPath );
     if ( result == NFD_OKAY )

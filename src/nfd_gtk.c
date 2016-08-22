@@ -425,6 +425,16 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
 
 bool NFD_IsAvailable()
 {
+	/*
+		We want to distinguish if we are in a window manager or command line.
+		XDG_CURRENT_DESKTOP seems to be populated in the window manager case.
+		http://askubuntu.com/questions/72549/how-to-determine-which-window-manager-is-running
+	*/
+	if( !getenv("XDG_CURRENT_DESKTOP") )
+	{
+		return false;
+	}
+	/* Now we should actually load the libraries to make sure GTK-3 is available. */
 	return CheckLib();
 }
 
