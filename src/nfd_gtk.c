@@ -26,20 +26,47 @@ const char LOADLIB_GTK_FAIL_MSG[] = "Unable to dlopen GTK+";
 
 static bool Internal_LoadLibrary()
 {
+	size_t i;
 	// RTLD_LAZY or RTLD_NOW?
 	//const mode_flags = RTLD_NOW | RTLD_LOCAL;	
 	const mode_flags = RTLD_LAZY | RTLD_LOCAL;	
-	
-	s_glibLibrary = dlopen("libglib-2.0.so", mode_flags);
+	static const char* listOfGlibNames =
+	{
+		"libglib-2.0.so", // Ubuntu 12.04
+		"libglib-2.0.so.0" // SteamOS
+	};
+#define GLIB_NAMES_ARRAY_LENGTH (sizeof(listOfGlibNames)/sizeof(*listOfGlibNames))
+	static const char* listOfGtkNames =
+	{
+		"libgtk-3.so.0", // Ubuntu 12.04, SteamOS
+		"libgtk-3.so" // haven't seen this yet, but why not?
+	};
+#define GTK_NAMES_ARRAY_LENGTH (sizeof(listOfGtkNames)/sizeof(*listOfGtkNames))
+
+	for(i=0; i<GLIB_NAMES_ARRAY_LENGTH; i++)
+	{
+		s_glibLibrary = dlopen(listOfGlibNames[i], mode_flags);
+		if(NULL != s_glibLibrary)
+		{
+			break;
+		}
+	}
+
 	if(NULL == s_glibLibrary)
 	{
         NFDi_SetError(LOADLIB_GLIB_FAIL_MSG);
 		return false;
-
 	}
 
+	for(i=0; i<GTK_NAMES_ARRAY_LENGTH; i++)
+	{
+		s_gtkLibrary = dlopen(listOfGtkNames[i], mode_flags);
+		if(NULL != s_gtkLibrary)
+		{
+			break;
+		}
+	}
 
-	s_gtkLibrary = dlopen("libgtk-3.so.0", mode_flags);
 	if((NULL != s_gtkLibrary) && (NULL != s_glibLibrary))
 	{
 		NDFi_SetDLSymbols(s_glibLibrary, s_gtkLibrary);
@@ -55,6 +82,7 @@ static bool Internal_LoadLibrary()
 
 static void Internal_UnloadLibrary()
 {
+	NFDi_ClearDLSymbols();
 	if(NULL != s_gtkLibrary)
 	{
 		dlclose(s_gtkLibrary);
@@ -65,7 +93,6 @@ static void Internal_UnloadLibrary()
 		dlclose(s_glibLibrary);
 		s_glibLibrary = NULL;
 	}
-	NFDi_ClearDLSymbols();
 }
 
 static bool CheckLib()
