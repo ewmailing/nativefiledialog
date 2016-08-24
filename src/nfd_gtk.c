@@ -30,13 +30,13 @@ static bool Internal_LoadLibrary()
 	// RTLD_LAZY or RTLD_NOW?
 	//const mode_flags = RTLD_NOW | RTLD_LOCAL;	
 	const mode_flags = RTLD_LAZY | RTLD_LOCAL;	
-	static const char* listOfGlibNames =
+	static const char* listOfGlibNames[] =
 	{
 		"libglib-2.0.so", // Ubuntu 12.04
 		"libglib-2.0.so.0" // SteamOS
 	};
 #define GLIB_NAMES_ARRAY_LENGTH (sizeof(listOfGlibNames)/sizeof(*listOfGlibNames))
-	static const char* listOfGtkNames =
+	static const char* listOfGtkNames[] =
 	{
 		"libgtk-3.so.0", // Ubuntu 12.04, SteamOS
 		"libgtk-3.so" // haven't seen this yet, but why not?
