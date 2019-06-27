@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include "nfd_common.h"
+#include <stdio.h>
 
 static char g_errorstr[NFD_MAX_STRLEN] = {0};
 
@@ -63,7 +64,8 @@ void *NFDi_Malloc( size_t bytes )
 
 void NFDi_Free( void *ptr )
 {
-    assert(ptr);
+	// I get NULL when I cancel a panel
+//    assert(ptr);
     free(ptr);
 }
 

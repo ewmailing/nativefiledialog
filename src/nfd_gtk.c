@@ -4,6 +4,7 @@
   http://www.frogtoss.com/labs
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -21,15 +22,15 @@
 static void* s_glibLibrary = NULL;
 static void* s_gtkLibrary = NULL;
 
-const char LOADLIB_GLIB_FAIL_MSG[] = "Unable to dlopen Glib";
-const char LOADLIB_GTK_FAIL_MSG[] = "Unable to dlopen GTK+";
+static const char LOADLIB_GLIB_FAIL_MSG[] = "Unable to dlopen Glib";
+static const char LOADLIB_GTK_FAIL_MSG[] = "Unable to dlopen GTK+";
 
-static bool Internal_LoadLibrary()
+static bool Internal_LoadLibrary(bool is_for_availability_test)
 {
 	size_t i;
 	// RTLD_LAZY or RTLD_NOW?
-	//const mode_flags = RTLD_NOW | RTLD_LOCAL;	
-	const mode_flags = RTLD_LAZY | RTLD_LOCAL;	
+	//const int mode_flags = RTLD_NOW | RTLD_LOCAL;	
+	int mode_flags = RTLD_LAZY | RTLD_LOCAL;
 	static const char* listOfGlibNames[] =
 	{
 		"libglib-2.0.so", // Ubuntu 12.04
@@ -42,6 +43,18 @@ static bool Internal_LoadLibrary()
 		"libgtk-3.so" // haven't seen this yet, but why not?
 	};
 #define GTK_NAMES_ARRAY_LENGTH (sizeof(listOfGtkNames)/sizeof(*listOfGtkNames))
+
+	// Sadness: I wanted to always be able to dlclose gtk/glib to free up RAM when we are done.
+	// But on some platforms/distros, reopening and using GTK for a second time crashes.
+	// I don't know why this happens, but my speculation is that there are some global/static variables in GTK which need to reinitialize but don't which leads to using stale values/pointers and a crash.
+	// So for now, the workaround is to not fully unload GTK. The RTLD_NODELETE flag is the easiest way to achieve this so I don't have to rewrite all the dlclose() code.
+	// But out NFD_IsAvailable API check also causes a dlopen/dlclose which means we load in all the memory just for a check, which is unfortunate.
+	// But it appears I don't get the crash for just dlopen followed immediately by dlclose without using any APIs. So we can unload this memory and get it back for this one case.
+	// So we can skip RTLD_NODELETE when doing the availability test.
+	if(!is_for_availability_test)
+	{
+		mode_flags |= RTLD_NODELETE;
+	}
 
 	for(i=0; i<GLIB_NAMES_ARRAY_LENGTH; i++)
 	{
@@ -78,6 +91,7 @@ static bool Internal_LoadLibrary()
         NFDi_SetError(LOADLIB_GTK_FAIL_MSG);
 		return false;
 	}
+	
 }
 
 static void Internal_UnloadLibrary()
@@ -95,11 +109,11 @@ static void Internal_UnloadLibrary()
 	}
 }
 
-static bool CheckLib()
+static bool CheckLib(bool is_for_availability_test)
 {
 	if(NULL == s_gtkLibrary)
 	{
-		return Internal_LoadLibrary();
+		return Internal_LoadLibrary(is_for_availability_test);
 	}
 	else
 	{
@@ -107,12 +121,13 @@ static bool CheckLib()
 	}
 }
 
+
 static void CloseLib()
 {
 	Internal_UnloadLibrary();
 }
 #else
-static bool CheckLib()
+static bool CheckLib(bool is_for_availability_test)
 {
 	return true;
 }
@@ -124,7 +139,7 @@ static void CloseLib()
 
 #endif
 
-const char INIT_FAIL_MSG[] = "gtk_init_check failed to initilaize GTK+";
+static const char INIT_FAIL_MSG[] = "gtk_init_check failed to initilaize GTK+";
 
 
 static void AddTypeToFilterName( const char *typebuf, char *filterName, size_t bufsize )
@@ -284,7 +299,7 @@ nfdresult_t NFD_OpenDialog( const char *filterList,
     GtkWidget *dialog;
     nfdresult_t result;
 
-	if ( !CheckLib() )
+	if ( !CheckLib(false) )
 	{
         return NFD_ERROR;
 	}
@@ -347,7 +362,7 @@ nfdresult_t NFD_OpenDialogMultiple( const nfdchar_t *filterList,
     GtkWidget *dialog;
     nfdresult_t result;
 	
-	if ( !CheckLib() )
+	if ( !CheckLib(false) )
 	{
         return NFD_ERROR;
 	}
@@ -400,7 +415,7 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
     GtkWidget *dialog;
     nfdresult_t result;
 
-	if ( !CheckLib() )
+	if ( !CheckLib(false) )
 	{
         return NFD_ERROR;
 	}
@@ -476,7 +491,7 @@ bool NFD_IsAvailable()
 		return false;
 	}
 	/* Now we should actually load the libraries to make sure GTK-3 is available. */
-	ret_flag = CheckLib();
+	ret_flag = CheckLib(true);
 	s_cachedResult = ret_flag;
 	s_hasChecked = true;
 	CloseLib();
