@@ -1,0 +1,259 @@
+apply plugin: 'com.android.application'
+
+def autoDetectedCompileSdkVersion = fetchTargetSdkVersion(28)
+def autoDectectedBuildToolsVersion = latestBuildToolsAvailable("28.0.3")
+
+android {
+	compileSdkVersion autoDetectedCompileSdkVersion
+	buildToolsVersion autoDectectedBuildToolsVersion
+	defaultConfig {
+		applicationId "net.playcontrol.testapp"
+		minSdkVersion 22
+		targetSdkVersion autoDetectedCompileSdkVersion
+		versionCode 1
+		versionName "1.0"
+//		testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+		externalNativeBuild {
+			cmake {
+					arguments "-DNFD_ANDROID_BUILD_TEST_LIBRARY=1"
+					cFlags ""
+					cppFlags ""
+			}
+		}
+		ndk {
+			// Specifies the ABI configurations of your native
+			// libraries Gradle should build and package with your APK.
+			abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+//			abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+//			abiFilters 'arm64-v8a', 'x86_64'
+//			abiFilters 'armeabi-v7a', 'x86'
+//		abiFilters 'armeabi-v7a'
+//			abiFilters 'x86'
+//			abiFilters 'arm64-v8a'
+		}
+	}
+	buildTypes {
+		release {
+			minifyEnabled false
+			proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+		}
+	}
+	externalNativeBuild {
+		cmake {
+		//	path "CMakeLists.txt"
+			path "../../CMakeLists.txt"
+
+		}
+	}
+
+
+}
+
+dependencies {
+	implementation fileTree(dir: 'libs', include: ['*.jar'])
+//	androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
+//		exclude group: 'com.android.support', module: 'support-annotations'
+//	})
+//	implementation 'com.android.support:appcompat-v7:28.0.0'
+//	implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+
+	implementation(project(":nfd")) {
+		// This didn't seem to do anything for me. (I was hitting a conflict when including the files myself.)
+//		exclude module: 'IInAppBillingService'
+		}
+
+//	testImplementation 'junit:junit:4.12'
+
+}
+
+
+String fetchSdkRoot()
+{
+	def root_dir = project.rootDir
+	def local_properties = new File(root_dir, "local.properties")
+	if(local_properties.exists())
+	{
+		Properties properties = new Properties()
+		local_properties.withInputStream
+				{
+					instr -> properties.load(instr)
+				}
+		def sdk_dir = properties.getProperty('sdk.dir')
+		sdk_dir
+	}
+	else
+	{
+		println "Failed to find local.properties"
+		'/Applications/Android Studio.app/sdk'
+	}
+}
+
+
+
+String fetchNdkRoot()
+{
+	def root_dir = project.rootDir
+	def local_properties = new File(root_dir, "local.properties")
+	if(local_properties.exists())
+	{
+		Properties properties = new Properties()
+		local_properties.withInputStream
+				{
+					instr -> properties.load(instr)
+				}
+		def ndk_dir = properties.getProperty('ndk.dir')
+		ndk_dir
+	}
+	else
+	{
+		println "Failed to find local.properties"
+		'/Applications/Android Studio.app/sdk'
+	}
+}
+
+import java.util.regex.*
+int fetchTargetSdkVersion(int default_value)
+{
+	/*
+	def root_dir = project.rootDir
+	def local_properties = new File(root_dir, "local.properties")
+	if(local_properties.exists())
+	{
+		Properties properties = new Properties()
+		local_properties.withInputStream
+				{
+					instr -> properties.load(instr)
+				}
+		def version = properties.getProperty('targetSdkVersion')
+		version.toInteger()
+	}
+	else
+	{
+		println "Failed to find local.properties"
+		default_value
+	}
+	*/
+	def platform_dir = new File(fetchSdkRoot(), "platforms")
+	// We should get directories like "android-14", "android-21", "android-25"
+	// extract the number from "android-25" and convert to Integer
+
+	def target_version_number_list = []
+
+	def final_result = default_value
+	def matcher_pattern = /android-(\d+)/
+
+	platform_dir.list().each()
+			{
+				def find_result = (it =~ /$matcher_pattern/)
+				/*
+		m[0] is the first match object.
+		m[0][0] is everything that matched in this match.
+		m[0][1] is the first capture in this match.
+		m[0][2] is the second capture in this match.
+		 */
+				if(find_result.size() > 0)
+				{
+					//	target_version_number_list.list().sort { a, b -> b <=> a }
+					def found_version = find_result[0][1].toInteger()
+
+//			println "got array match: " + found_version
+					target_version_number_list.push(found_version);
+				}
+				else
+				{
+					println "Warning: Platform directory match did not find anything. Did Android break their file convention?"
+				}
+			}
+
+	if(target_version_number_list.size() > 0)
+	{
+		target_version_number_list.sort { a, b -> b <=> a }
+		final_result = target_version_number_list[0]
+		println "Using latest found SDK for target SDK version: " + final_result
+	}
+	else
+	{
+		println "Warning: Could not auto-detect target sdk. Platform directory match did not find anything. Did Android break their file convention? Falling back to default value of: " + default_value
+
+	}
+
+//	println "target sdk version is: " + final_result
+
+	final_result
+
+
+
+}
+
+
+int fetchMinSdkVersion(int default_value)
+{
+	def root_dir = project.rootDir
+	def local_properties = new File(root_dir, "local.properties")
+	if(local_properties.exists())
+	{
+		Properties properties = new Properties()
+		local_properties.withInputStream
+				{
+					instr -> properties.load(instr)
+				}
+		def version = properties.getProperty('minSdkVersion')
+		version.toInteger()
+	}
+	else
+	{
+		println "Failed to find local.properties"
+		default_value
+	}
+}
+
+
+
+
+String[] buildToolsAvailable() {
+	def buildToolsDir = new File(fetchSdkRoot(), "build-tools")
+	buildToolsDir.list().sort { a, b -> b <=> a }
+}
+
+// http://www.egeek.me/2013/12/07/gradle-auto-detect-android-sdk-and-build-tools-versions/
+String latestBuildToolsAvailable(String defaultBuildTools) {
+	try {
+		def buildToolsVersions = buildToolsAvailable()
+		def latestBuildTools = buildToolsVersions[0]
+		if (latestBuildTools != null) {
+			// Damn it. Android Studio contains an SDK with an inconsistent directory name.
+			// The regular SDK has directories listed by tool number.
+			// Studio lists e.g. Android-4.4.2.
+			// As a workaround, both have a source.properties with the field:
+			// Pkg.Revision=19.1
+
+			def source_prop_dir = fetchSdkRoot() + '/build-tools/' + latestBuildTools
+			def source_properties = new File(source_prop_dir, "source.properties")
+			if(source_properties.exists())
+			{
+				Properties properties = new Properties()
+				source_properties.withInputStream
+						{
+							instr -> properties.load(instr)
+						}
+				def version = properties.getProperty('Pkg.Revision')
+				println "Using latest found build tools: " + version + " located in " + source_prop_dir
+				version
+			}
+			else
+			{
+				println "Failed to find source.properties"
+				defaultBuildTools
+			}
+		} else {
+			println "No installed build tools found. Using default build tools " +
+					defaultBuildTools
+			defaultBuildTools
+		}
+	} catch (any) {
+		println "Exception while determining latest build tools. Using default build tools " +
+				defaultBuildTools
+//        StackTraceUtils.sanitize(any).printStackTrace()
+		defaultBuildTools
+	}
+}
